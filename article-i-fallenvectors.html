@@ -541,14 +541,15 @@ svg { display: block; margin: 0 auto; max-width: 100%; height: auto; }
   </figcaption>
 </figure>
 
-<p>Even a well-engineered RAG system finds document chunks that share your query's vocabulary. It cannot tell whether those chunks agree with each other, whether they connect to critical context buried three cross-references deep in the corpus, or whether the answer it assembles from them is coherent, current, or safe.</p>
+<p>In 1932, Frederic Bartlett proved that human memory is not playback. It is a reconstruction—actively shaped by context, schema, and the specific question being asked.</p>
 
-<p>The gap between lexical proximity and semantic compatibility is where every failure in this article lives.</p>
+<p>Nearly a century later, we are busy building RAG systems that completely ignore this principle.</p>
 
-<p>Frederic Bartlett showed in 1932 that human memory is not playback — it is reconstruction shaped by context, schema, and the question being asked. Cosine similarity skips the reconstruction entirely. It matches surfaces and hopes the language model will sort out the depth. This article names four substrate fallacies — architectural failure modes that survive every optimization the field has attempted, from rerankers to agentic orchestration. Each is a specific dimension of knowledge that dense embeddings discard. Together they explain why your retrieval metrics are improving while your answer quality is not. I have personally built systems that exhibit all four. I have layered complex code over weak foundations to obscure the foundation problem. This is the diagnosis I wish I had received before the first production incident.</p>
+<p>The gap between lexical proximity and semantic compatibility is where every silent failure in most of the RAG pipeline lives.</p>
 
-<p>A necessary scope note: naïve RAG works inside a narrow envelope — clean corpora, self-contained documents, retrieval-shaped questions. The trouble starts when we take it outside that envelope and wrap it in orchestration that feels intelligent while guaranteeing the same brittle failures under a higher token budget. The pattern is not specific to pharmaceuticals. A financial compliance system that retrieves a superseded ISDA master agreement alongside the current version because they share 90% of their vocabulary. A legal research tool that conflates two circuit court opinions reaching opposite conclusions because both cite the same precedents. The domain changes. The geometry does not.</p>
+<p>Don't get me wrong, naïve RAG works inside a narrow envelope — clean corpora, self-contained documents, retrieval-shaped questions. The trouble starts when we take it outside that envelope and wrap it in orchestration that feels intelligent while guaranteeing the same brittle failures under a higher token budget. The pattern is not specific to pharmaceuticals. A financial compliance system that retrieves a superseded ISDA master agreement alongside the current version because they share 90% of their vocabulary. A legal research tool that conflates two circuit court opinions reaching opposite conclusions because both cite the same precedents. The domain changes. The geometry does not.</p>
 
+<p>This article names four substrate fallacies: specific dimensions of knowledge that dense embeddings discard, and architectural failure modes that survive every optimization we throw at them.</p>
 <!-- ═══════════════════════════════════════════════════════════ -->
 <!-- FIGURE 0: Three-state spine (recurring across the series)   -->
 <!-- Article I instance: shadow panel highlighted                 -->
