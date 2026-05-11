@@ -541,9 +541,7 @@ svg { display: block; margin: 0 auto; max-width: 100%; height: auto; }
   </figcaption>
 </figure>
 
-<p>In 1932, Frederic Bartlett proved that human memory is not playback. It is a reconstruction—actively shaped by context, schema, and the specific question being asked.</p>
-
-<p>Nearly a century later, we are busy building RAG systems that completely ignore this principle.</p>
+<p>Frederic Bartlett (1932) proved that human memory is not playback. It is a reconstruction --- actively shaped by context, schema, and the specific question being asked. Nearly a century later, we are busy building RAG systems that completely ignore this principle.</p>
 
 <p>The gap between lexical proximity and semantic compatibility is where every silent failure in most of the RAG pipeline lives.</p>
 
@@ -741,13 +739,19 @@ svg { display: block; margin: 0 auto; max-width: 100%; height: auto; }
   <p>The system had been tested on eight hundred queries before deployment. It had passed every benchmark the team knew how to construct. And it had told a physician, in fluent prose with proper citations, that a hepatotoxic compound extended survival. Nobody is hurt — the physician caught it on review, the kind of catch a system cannot count on. The embedding fix takes months. Then comes the chunking problem. Then the composition problem. Then the corpus problem. Each fallacy escaped reveals another underneath it.</p>
 </div>
 
-<p>The midnight email was pure Representation Failure. Two papers, overlapping vocabulary, opposite clinical implications, 3.1 units apart in vector space. The embedding model did exactly what it was asked to do. The documents were similar in the shallow sense vector geometry captures and dangerously incompatible in the deep sense clinical decision-making requires. Teams in this position will spend months trying different embedding models — domain-tuned, multi-vector, late-interaction approaches like ColBERT — before they understand the problem is not <em>how</em> they were embedding. The problem is that embedding was the wrong tool for the job.</p>
+<p>The midnight email was pure Representation Failure. Two papers, overlapping vocabulary, opposite clinical implications, cosine
+similarity 0.91 --- well inside the agreement zone of this embedder's distribution. The embedding model did exactly what it was asked to do. The documents were similar in the shallow sense vector geometry captures and dangerously incompatible in the deep sense clinical decision-making requires. Teams in this position will spend months trying different embedding models — domain-tuned, multi-vector, late-interaction approaches like ColBERT — before they understand the problem is not <em>how</em> they were embedding. The problem is that embedding was the wrong tool for the job.</p>
 
 <h3>Why the collision is architectural, not tunable</h3>
 
-<p>The neural machinery is incriminating. The hippocampus performs two operations in constant tension: <em>pattern separation</em> (keeping similar-but-distinct memories distinguishable) and <em>pattern completion</em> (reconstructing a full memory from a partial cue). Separation prevents catastrophic interference — exactly the disaster that happens when your vector store returns a hepatotoxic study alongside a survival study because they share words. In the dentate gyrus — the input stage of the hippocampus — overlapping cortical inputs are re-encoded into <em>sparse</em> activation patterns, with active fractions consistently in a few-percent band. The mechanism relies on expansion into a much larger neural population with aggressive competitive inhibition, ensuring that even near-identical inputs activate barely-overlapping subsets.</p>
+<p>The neural machinery is incriminating. The hippocampus performs two operations in constant tension: <em>pattern separation</em> (keeping similar-but-distinct memories distinguishable) and <em>pattern completion</em> (reconstructing a full memory from a partial cue) (O'Reilly &
+McClelland, 1994; Yassa & Stark, 2011). Separation prevents catastrophic interference — exactly the disaster that happens when your vector store returns a hepatotoxic study alongside a survival study because they share words. In the dentate gyrus — the input stage of the hippocampus — overlapping cortical inputs are re-encoded into <em>sparse</em> activation patterns, with active fractions consistently in a few-percent band. The mechanism relies on expansion into a much larger neural population with aggressive competitive inhibition, ensuring that even near-identical inputs activate barely-overlapping subsets.</p>
 
-<p>Cosine similarity over dense embeddings does the opposite. Most dimensions are non-zero for any input, and similar inputs produce similar activations <em>by construction</em>. The collision is not a tuning failure. It is what the architecture is doing.</p>
+<p>Cosine similarity over dense embeddings does the opposite. Most dimensions are non-zero for any input, and similar inputs produce similar activations <em>by construction</em>. The collision is not a tuning failure. It is what the architecture is doing. </p>
+
+The analogy goes only so far. The dentate gyrus assumes its dictionary; the engineering problem starts with constructing one. Sparse-coding attempts in the retrieval literature --- SPLADE, sparse autoencoders over dense embeddings --- show why the operation is harder than the
+principle: sparsity over the <em>vocabulary</em> dimension is not the same operation as sparsity over the <em>concept</em> dimension. The brain solves a problem we are not yet equipped to pose cleanly. The biological claim grounding this section is therefore narrower than it sounds: sparse,
+high-dimensional codes have provably lower interference than dense ones (Babadi & Sompolinsky, 2014), and the contrastive-cosine substrate inverts that property. The rest is engineering, not analogy.</p>
 
 <!-- ═══════════════════════════════════════════ -->
 <!-- FIGURE 1: Cosine vs Sparse (interactive)   -->
@@ -1035,7 +1039,13 @@ svg { display: block; margin: 0 auto; max-width: 100%; height: auto; }
 
 <p>The biological analogy points to a deeper architectural fact about how these embedders were built. Modern embedding models are trained with contrastive objectives — InfoNCE, multiple-negatives ranking, triplet losses — whose supervision signal is "these two passages co-occur in similar contexts." The signal is never "these two passages reach the same conclusion." A paper reporting that Compound A extends survival and a paper reporting that Compound B caused hepatotoxicity in the same indication share co-occurrence statistics so densely — same vocabulary, same patient population, same molecular target class, often the same journal venue — that any contrastive objective treats them as positives of one another. The training data has no column for <em>agreement</em>. The model cannot learn what it was never asked to represent. The midnight email is what that absence looks like at deployment.</p>
 
-<p>The geometry inherits this and compounds it: spheres cannot hold trees. Cosine similarity is computed on the surface of a unit hypersphere — a bounded manifold. Ontologies, taxonomies, and pharmacological hierarchies are not spherical objects. A drug class that branches into twenty subclasses, each branching further into variants and formulations, is a tree. Trees embed naturally in <strong>hyperbolic</strong> spaces, where the area available at distance <em>r</em> from the origin grows <em>exponentially</em> with <em>r</em> — unlike Euclidean space (polynomial growth) or spherical space (bounded). A pharmacological taxonomy with branching factor <em>b</em> and depth <em>d</em> produces <em>b<sup>d</sup></em> leaf concepts; hyperbolic space has room for all of them at the boundary while keeping the root at the origin and preserving hierarchical distances. Spherical and Euclidean spaces cannot: they are geometrically too small for exponential branching, and everything crowds toward the center (Nickel &amp; Kiela, 2017). We are taking knowledge structures whose natural geometry is hyperbolic and projecting them onto a unit sphere — an operation that must produce collisions, and does. Even if the training objective were stance-aware, the bounded geometry would still crowd hierarchically distant items together. The training objective is the architectural cause. The spherical projection is the geometric symptom that compounds it.</p>
+<p>The geometry inherits this and compounds it: spheres cannot hold trees. Cosine similarity is computed on the surface of a unit hypersphere — a bounded manifold. Ontologies, taxonomies, and pharmacological hierarchies are not spherical objects. A drug class that branches into twenty subclasses, each branching further into variants and formulations, is a tree. Trees embed naturally in <strong>hyperbolic</strong> spaces, where the area available at distance <em>r</em> from the origin grows <em>exponentially</em> with <em>r</em> — unlike Euclidean space (polynomial growth) or spherical space (bounded). A pharmacological taxonomy with branching factor <em>b</em> and depth <em>d</em> produces <em>b<sup>d</sup></em> leaf concepts; hyperbolic space has room for all of them at the boundary while keeping the root at the origin and preserving hierarchical distances. Spherical and Euclidean
+spaces cannot: they are geometrically too small for exponential branching, and everything crowds toward the center (Nickel & Kiela, 2017).</p>
+
+<p>The framing oversimplifies in one direction: real knowledge is a DAG with cycles, not a strict tree, and the geometric prescription for DAGs
+is mixed-curvature embeddings rather than pure hyperbolic space (Gu et al., 2019). The architectural point is unchanged --- spherical embedding spaces cannot hold the structures we need them to hold --- but the fix is more careful than "switch to hyperbolic."
+
+We are taking knowledge structures whose natural geometry is hyperbolic and projecting them onto a unit sphere. We are taking knowledge structures whose natural geometry is hyperbolic and projecting them onto a unit sphere — an operation that must produce collisions, and does. Even if the training objective were stance-aware, the bounded geometry would still crowd hierarchically distant items together. The training objective is the architectural cause. The spherical projection is the geometric symptom that compounds it.</p>
 
 <div class="callout callout-amber">
   <div class="callout-title">What would have to change — and why none of it ships today</div>
@@ -1046,9 +1056,9 @@ svg { display: block; margin: 0 auto; max-width: 100%; height: auto; }
 
 <h3>The Modern Embedding Landscape: What Has Changed, and What Has Not</h3>
 <p>The embedding landscape has not stood still, and the critique above must account for recent developments that partially address the collision geometry.</p>
-<p><strong>Multi-vector representations</strong> — ColBERT, ColBERTv2, and XTR — represent documents as collections of token-level vectors rather than a single pooled embedding. Late interaction computes similarity at the token level, which can distinguish "extends survival" from "causes hepatotoxicity" if these phrases activate different query tokens. The effect is real but bounded: if both documents contain the shared vocabulary ("kinase," "inhibitor," "EGFR") and the distinguishing phrases appear late in the ranking calculation, the retrieval stage may still return both documents. Multi-vector representations narrow the collision window. They do not close it.</p>
-<p><strong>Matryoshka Representations</strong> — available in OpenAI's embedding models and Jina's suite — provide embeddings at multiple dimensionalities (3072D, 1024D, 256D). The coarse-to-fine retrieval pipeline this enables partially addresses the capacity problem. This is a retrieval optimization, not a representation fix. The geometry is still spherical. The capacity is still bounded.</p>
-<p><strong>BGE-M3</strong> — the most capable production embedding system as of this writing — provides dense, sparse (SPLADE-style), and multi-vector representations simultaneously. It is the closest current system to the desideratum this article describes. But BGE-M3's sparse representation is sparse over the <em>vocabulary dimension</em>, not the concept dimension. It can separate "kinase inhibitor" from "protease inhibitor" because the vocabularies diverge. It cannot reliably separate two EGFR kinase inhibitor papers with opposite clinical outcomes and overlapping terminology. Vocabulary-level sparsity improves lexical retrieval. Concept-level sparsity — orthogonalizing similar-but-distinct knowledge objects — requires the architectural changes this article argues for.</p>
+<p><strong>Multi-vector representations</strong> — ColBERT, ColBERTv2, and XTR (Khattab & Zaharia, 2020; Santhanam et al., 2022; Lee et al., 2024) — represent documents as collections of token-level vectors rather than a single pooled embedding. Late interaction computes similarity at the token level, which can distinguish "extends survival" from "causes hepatotoxicity" if these phrases activate different query tokens. The effect is real but bounded: if both documents contain the shared vocabulary ("kinase," "inhibitor," "EGFR") and the distinguishing phrases appear late in the ranking calculation, the retrieval stage may still return both documents. Multi-vector representations narrow the collision window. They do not close it.</p>
+<p><strong>Matryoshka Representations</strong> (Kusupati et al., 2022) — available in OpenAI's embedding models and Jina's suite — provide embeddings at multiple dimensionalities (3072D, 1024D, 256D). The coarse-to-fine retrieval pipeline this enables partially addresses the capacity problem. This is a retrieval optimization, not a representation fix. The geometry is still spherical. The capacity is still bounded.</p>
+<p><strong>BGE-M3</strong> (Chen et al., 2024) — the most capable production embedding system as of this writing — provides dense, sparse (SPLADE-style), and multi-vector representations simultaneously. It is the closest current system to the desideratum this article describes. But BGE-M3's sparse representation is sparse over the <em>vocabulary dimension</em>, not the concept dimension. It can separate "kinase inhibitor" from "protease inhibitor" because the vocabularies diverge. It cannot reliably separate two EGFR kinase inhibitor papers with opposite clinical outcomes and overlapping terminology. Vocabulary-level sparsity improves lexical retrieval. Concept-level sparsity — orthogonalizing similar-but-distinct knowledge objects — requires the architectural changes this article argues for.</p>
 <p>None of these approaches resolve the fundamental problem. They narrow it. The collision geometry persists because the underlying space is spherical, and hierarchical, typed, relational knowledge does not embed naturally on a sphere. The improvements are worth deploying — they measurably improve recall on standard benchmarks — but they do not change the geometry that produces the midnight email.</p>
 
 
@@ -1125,7 +1135,7 @@ svg { display: block; margin: 0 auto; max-width: 100%; height: auto; }
 
 <p class="fig-cap">Figure 6 (interactive). A clinical trial protocol with internal cross-references. Toggle "Apply chunking" to see what a 512-token splitter does: it severs the connection between the dosing schedule (§3, page 15) and the safety threshold that governs it (§5, page 32). The chunk contains the dose. It does not contain the reason to stop escalating. That is structural amputation.</p>
 
-<p>Cognitive science has a name for this. Jeffrey Zacks's event segmentation theory shows that human comprehension partitions continuous experience at perceptually meaningful boundaries — topic shifts, state changes, references closing — and that disrupting these boundaries measurably degrades later recall. A 512-token splitter does not know any of those boundaries are there. It does not merely fail to respect document structure; it actively destroys the event-level segmentation the document's authors used to organize meaning.</p>
+<p>Cognitive science has a name for this. Jeffrey Zacks's event segmentation theory (Zacks et al., 2007) shows that human comprehension partitions continuous experience at perceptually meaningful boundaries — topic shifts, state changes, references closing — and that disrupting these boundaries measurably degrades later recall. A 512-token splitter does not know any of those boundaries are there. It does not merely fail to respect document structure; it actively destroys the event-level segmentation the document's authors used to organize meaning.</p>
 
 <p>I now think of chunking as an amputation problem, not a layout problem. Every split is a potential severing of a relationship that matters. The question is not <em>what is the right chunk size</em>. The question is <em>what knowledge structures must be preserved intact, and how do we identify them before we start cutting</em>. That requires understanding each document at a depth no general-purpose splitter — LangChain's <code>RecursiveCharacterTextSplitter</code>, LlamaIndex's <code>SentenceSplitter</code>, or a hand-rolled regex — can achieve.</p>
 
@@ -1145,7 +1155,7 @@ svg { display: block; margin: 0 auto; max-width: 100%; height: auto; }
 
 <p>The cognitive mechanism is more specific than "attention sag." When a language model receives three chunks in sequence — geriatric pharmacokinetics, followed by a dosing schedule, followed by pediatric dosing — it does not treat them as independent paragraphs. It treats them as a composition and reconstructs a narrative that connects them. The model does not know that juxtaposition is accidental. It cannot distinguish "these chunks were concatenated by a retrieval score" from "these chunks belong together because a domain expert composed them."</p>
 
-<p>Endel Tulving called the underlying principle <em>encoding specificity</em>: a memory is not a stored file but a record of the interaction between the item and its encoding context. Change the context, and the same item is recalled differently — or not at all. Change the neighboring chunks, and the same dosing paragraph is interpreted differently. Composition failure is not just losing information. It is manufacturing false context that the model treats as authored.</p>
+<p>Endel Tulving called the underlying principle <em>encoding specificity</em> (Tulving & Thomson, 1973) : a memory is not a stored file but a record of the interaction between the item and its encoding context. Change the context, and the same item is recalled differently — or not at all. Change the neighboring chunks, and the same dosing paragraph is interpreted differently. Composition failure is not just losing information. It is manufacturing false context that the model treats as authored.</p>
 
 
 <!-- ═══════════════════════════════════════════════════ -->
@@ -1311,9 +1321,9 @@ svg { display: block; margin: 0 auto; max-width: 100%; height: auto; }
 
 <hr>
 
-<h2>The Advanced Guard: What the Improvements Actually Fix</h2>
+<h2>Auditing the Advanced Stack and Where It Stops</h2>
 
-<p>A fair objection, and one this article would be dishonest to dodge: the field has not been idle. Microsoft's GraphRAG introduced entity-level knowledge graphs with community detection. HippoRAG made the hippocampal indexing analogy explicit and built graph-based retrieval with personalized PageRank. Anthropic's Contextual Retrieval prepends parent-document summaries to each chunk before embedding. RAPTOR builds recursive summary trees for multi-granularity retrieval. Agentic RAG wraps the entire pipeline in multi-step reasoning with tool use and self-correction.</p>
+<p>A fair objection, and one this article would be dishonest to dodge: the field has not been idle. Microsoft's GraphRAG (Edge et al., 2024) introduced entity-level knowledge graphs with community detection. HippoRAG made the hippocampal indexing analogy explicit and built graph-based retrieval with personalized PageRank. Anthropic's Contextual Retrieval prepends parent-document summaries to each chunk before embedding. RAPTOR builds recursive summary trees for multi-granularity retrieval. Agentic RAG wraps the entire pipeline in multi-step reasoning with tool use and self-correction.</p>
 
 <p>Each represents real engineering against real limitations. The question is not whether they improve on naïve RAG — they do, measurably, on the benchmarks they target. The question is which of the four substrate fallacies each one actually resolves, and which survive the upgrade.</p>
 
@@ -1351,7 +1361,13 @@ svg { display: block; margin: 0 auto; max-width: 100%; height: auto; }
 <p class="fig-cap">Figure 4 (interactive). The substrate audit. Each advanced approach is measured against the four fallacies. No approach achieves "Resolved" on any fallacy. GraphRAG and HippoRAG narrow three of four by introducing relational structure — real progress, honestly earned. But Fallacy IV (corpus failure) survives every upgrade because it is not a retrieval problem. Agentic RAG introduces a new risk: confident, fluent, expensive wrong answers when the substrate is incomplete.</p>
 <p>The pattern is stark once the matrix is laid out. Every advanced approach improves the <em>retrieval layer</em> while leaving the <em>ingestion layer</em> untouched. GraphRAG comes closest to substrate work because it builds explicit structure — but its structure is only as good as its extraction pipeline, and its extraction pipeline is a general-purpose LLM running over chunks. The extraction has no domain ontology telling it what <em>matters</em>: that mechanism-of-action is different from target-of-action, that a Phase II failure carries different epistemic weight than a Phase III success, that "inhibitor" in the context of a kinase and "inhibitor" in the context of a protease are not the same relationship. Those distinctions are ingestion problems. They are Article II problems.</p>
 
-<p>One fallacy deserves particular attention. Fallacy IV — Corpus Failure — is the only fallacy that <em>worsens</em> under the most sophisticated orchestration. An agent that reasons over an incomplete corpus for three steps produces a more confident, more fluent, and more wrong answer than naïve RAG over the same corpus. The reasoning feels thorough. The citations look authoritative. The answer is built on a foundation that was never audited. This is not a theoretical risk. It is the same failure mode under a higher token budget.</p>
+<p>### The Agentic Trap: Confidence Amplification Over a Broken Substrate
+
+One fallacy deserves particular attention. Fallacy IV --- Corpus Failure --- is the only fallacy that *worsens* under the most sophisticated orchestration. An agent that reasons over an incomplete corpus for three steps produces a more confident, more fluent, and more
+wrong answer than naïve RAG over the same corpus. The reasoning feels thorough. The citations look authoritative. The answer is built on a foundation that was never audited. This is not a theoretical risk. It is the same failure mode under a higher token budget.
+
+The mechanism is confidence amplification. Each reasoning step in an agentic loop draws on the same broken substrate, and each step launders the corpus's gaps through another layer of plausible synthesis. The
+model has no mechanism for questioning the substrate --- nothing in the loop asks *is the right document even present?* By step three, the agent has built a fluent, internally consistent, well-cited argument on top of evidence that was incomplete before the first hop. The citations are real. The reasoning is sound. The conclusion is wrong with a confidence the substrate could never have justified. Of the four fallacies, this is the one where the upgrade path makes things worse, not better.</p>
 
 <p>When teams sense the substrate problem but cannot name it, the typical response is to reach upward — agentic retrieval loops, contextual chunking, longer context windows, more rerankers. That escalation has its own shape.</p>
 
@@ -1943,6 +1959,59 @@ print(f"floor {floor:.3f}  test {test:.3f}  ceiling {ceiling:.3f}  ratio {ratio:
 <p>The distinction between II and III matters. The architecture is the easy part. The work is the hard part. Most engineers who land in the substrate problem reach first for a graph database when they should be reaching for an ingestion engineer.</p>
 
 <p>If you have read this far and recognized your system in the diagnostic figures, you are in good company. Bring the worst document in your corpus and the question your stakeholders keep asking that the system gets wrong. Article II will start there.</p>
+
+<h2>References</h2>
+
+<p>Anthropic. (2024). Introducing Contextual Retrieval. Anthropic Engineering Blog. https://www.anthropic.com/news/contextual-retrieval Babadi, B., & Sompolinsky, H. (2014). Sparseness and expansion in
+sensory representations. Neuron, 83(5), 1213--1226.</p>
+
+<p>Barnett, S., Kurniawan, S., Thudumu, S., Brannelly, Z., & Abdelrazek, M. (2024). Seven failure points when engineering a retrieval augmented generation system. Proceedings of the IEEE/ACM 3rd International Conference on AI Engineering (CAIN).</p>
+
+<p>Bartlett, F. C. (1932). Remembering: A study in experimental and social psychology. Cambridge University Press.</p>
+
+<p>Chen, J., Xiao, S., Zhang, P., Luo, K., Lian, D., & Liu, Z. (2024). BGE
+M3-embedding: Multi-lingual, multi-functionality, multi-granularity text
+embeddings through self-knowledge distillation. </p> 
+
+<p>arXiv:2402.03216. Edge, D., Trinh, H., Cheng, N., Bradley, J., Chao, A., Mody, A., Truitt, S., & Larson, J. (2024). From local to global: A graph RAG approach to query-focused summarization. arXiv:2404.16130.</p>
+
+<p>Formal, T., Lassance, C., Piwowarski, B., & Clinchant, S. (2022). From distillation to hard negative sampling: Making sparse neural IR models more effective. Proceedings of the 45th International ACM SIGIR Conference, 2353--2359. </p>
+
+<p>Gu, A., Sala, F., Gunel, B., & Ré, C. (2019). Learning mixed-curvature representations in product spaces. International Conference on Learning Representations. </p>
+
+<p>Gutiérrez, B. J., Shu, Y., Gu, Y., Yasunaga, M., & Su, Y. (2024). HippoRAG: Neurobiologically inspired long-term memory for large language models. Advances in Neural Information Processing Systems.</p>
+
+<p>Jevons, W. S. (1865). The coal question: An inquiry concerning the progress of the nation, and the probable exhaustion of our coal mines. Macmillan.</p>
+
+<p>Johnson, M. K., Hashtroudi, S., & Lindsay, D. S. (1993). Source monitoring. Psychological Bulletin, 114(1), 3--28.</p>
+
+<p>Khattab, O., & Zaharia, M. (2020). ColBERT: Efficient and effective passage search via contextualized late interaction over BERT.</p>
+
+<p>Proceedings of the 43rd International ACM SIGIR Conference, 39--48. Kusupati, A., Bhatt, G., Rege, A., Wallingford, M., Sinha, A., Ramanujan, V., Howard-Snyder, W., Chen, K., Kakade, S., Jain, P., & Farhadi, A. (2022). Matryoshka representation learning. Advances in Neural Information Processing Systems.</p>
+
+<p>Lee, J., Dai, Z., Duddu, S. M. K., Lei, T., Naim, I., Chang, M.-W., & Zhao, V. (2024). Rethinking the role of token retrieval in multi-vector retrieval. International Conference on Machine Learning.</p>
+
+<p>Lewis, P., Perez, E., Piktus, A., Petroni, F., Karpukhin, V., Goyal, N., Küttler, H., Lewis, M., Yih, W., Rocktäschel, T., Riedel, S., & Kiela, D. (2020). Retrieval-augmented generation for knowledge-intensive NLP tasks. Advances in Neural Information Processing Systems.</p>
+
+<p>Liu, N. F., Lin, K., Hewitt, J., Paranjape, A., Bevilacqua, M., Petroni, F., & Liang, P. (2023). Lost in the middle: How language models use long contexts. Transactions of the Association for Computational Linguistics, 12, 157--173.</p>
+
+<p>Nickel, M., & Kiela, D. (2017). Poincaré embeddings for learning hierarchical representations. Advances in Neural Information Processing Systems.</p>
+
+<p>O'Reilly, R. C., & McClelland, J. L. (1994). Hippocampal conjunctive encoding, storage, and recall: Avoiding a trade-off. Hippocampus, 4(6), 661--682.</p>
+
+<p>Roediger, H. L., & McDermott, K. B. (1995). Creating false memories: Remembering words not presented in lists. Journal of Experimental Psychology: Learning, Memory, and Cognition, 21(4), 803--814.</p>
+
+<p>Santhanam, K., Khattab, O., Saad-Falcon, J., Potts, C., & Zaharia, M. (2022). ColBERTv2: Effective and efficient retrieval via lightweight late interaction. Proceedings of NAACL, 3715--3734.</p>
+
+<p>Sarthi, P., Abdullah, S., Tuli, A., Khanna, S., Goldie, A., & Manning, C. D. (2024). RAPTOR: Recursive abstractive processing for tree-organized retrieval. International Conference on Learning Representations.</p>
+
+<p>Tulving, E., & Thomson, D. M. (1973). Encoding specificity and retrieval processes in episodic memory. Psychological Review, 80(5), 352--373.</p>
+
+<p>Yassa, M. A., & Stark, C. E. L. (2011). Pattern separation in the hippocampus. Trends in Neurosciences, 34(10), 515--525.</p>
+
+<p>Zacks, J. M., Speer, N. K., Swallow, K. M., Braver, T. S., & Reynolds, J. R. (2007). Event perception: A mind-brain perspective.</p>
+
+<p>Psychological Bulletin, 133(2), 273--293.</p>
 
 <div class="byline-foot">
 <p><strong>Raj Sakthi</strong> — Founder and Managing Partner, LatentGeneration.ai. Co-Founder (DurgAi) and Head of AI, Freshriver.ai. Three decades in knowledge engineering, applied AI/ML, and regulated-domain deployments, with a particular weakness for the foundations everyone else thinks are someone else's problem.</p>
